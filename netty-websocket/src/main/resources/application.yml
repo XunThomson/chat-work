@@ -1,0 +1,42 @@
+server:
+  port: 9098
+
+netty:
+  websocket:
+    path: /ws
+    boss-thread-count: 1
+    worker-thread-count: 4
+    max-frame-payload-length: 65536
+    idle-time-seconds: 60  # 60秒无读写则触发关闭
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB #  单个文件的最大大小
+      max-request-size: 1000MB #  整个请求的最大大小（包括多个文件）
+
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: smart-agent:latest
+      connection-timeout: 10000
+      read-timeout: 120000
+
+  data:
+    redis:
+      host: 192.168.92.104
+      port: 6379
+      password: 123456
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+  profiles:
+    active: dev #多环境配置加载内容dev/prod，不写is default配置

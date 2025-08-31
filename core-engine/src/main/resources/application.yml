@@ -1,0 +1,71 @@
+server:
+  port: 63343
+
+spring:
+  application:
+    name: ai-orchestrator-core
+
+  datasource:
+    url: jdbc:mysql://192.168.92.104:3306/project_management_system
+    username: xun
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+  profiles:
+    active: dev #多环境配置加载内容dev/prod，不写is default配置
+
+  jpa:
+    hibernate:
+      ddl-auto: none # 可选值有 none, validate, update, create, create-drop
+    show-sql: true # 是否在控制台打印SQL语句
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect # 根据数据库版本选择适当的方言
+        format_sql: true
+
+  data:
+    redis:
+      host: 192.168.92.104
+      port: 6379
+      password: 123456
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  # 搜索指定包别名
+  type-aliases-package: com.xun
+  # 配置mapper的扫描，找到所有的mapper.xml映射文件
+  mapper-locations: classpath:com/xun/mapper/*xml
+  # 配置驼峰
+  configuration:
+    # 是否开启自动驼峰命名规则（camel case）映射。默认值：true
+    map-underscore-to-camel-case: true
+    # 开启 Mybatis 二级缓存，默认为 true。
+    cache-enabled: true
+    # 日志输出实现。StdOutImpl 标准日志控制台输出
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 全局默认主键类型
+      id-type: assign_id
+      # 表名是否使用驼峰转下划线命名,只对表名生效。 默认true
+      table-underline: true
+
+logging:
+  level:
+    com.ai.orchestrator: DEBUG
+    org.apache.felix: WARN
+
+# 自定义配置
+ai:
+  module:
+    upload-dir: ./modules
+    auto-load-on-start: true
