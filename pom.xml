@@ -16,7 +16,6 @@
         <module>docs</module>
         <module>netty-websocket</module>
         <module>common-utils</module>
-        <module>test</module>
     </modules>
 
     <properties>
