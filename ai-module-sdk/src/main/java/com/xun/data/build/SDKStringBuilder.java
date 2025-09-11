@@ -19,11 +19,22 @@ import java.util.Objects;
 @Component
 public class SDKStringBuilder {
 
-    @Resource
+
     private StringRedisTemplate stringRedisTemplate;
 
-    @Resource
     private KafkaTemplate<String, Object> kafkaTemplate; // 用于发送事件
+
+    private SDKStringBuilder(StringRedisTemplate stringRedisTemplate,
+                             KafkaTemplate<String, Object> kafkaTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
+    public static SDKStringBuilder create(StringRedisTemplate redisTemplate,
+                                          KafkaTemplate<String, Object> kafkaTemplate) {
+        return new SDKStringBuilder(redisTemplate, kafkaTemplate);
+    }
+
 
     public StrBuilder builder() {
         return new StrBuilder(stringRedisTemplate, kafkaTemplate);

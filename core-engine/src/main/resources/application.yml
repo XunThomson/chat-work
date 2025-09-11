@@ -4,11 +4,19 @@ server:
 spring:
   application:
     name: ai-orchestrator-core
+  cloud:
+    nacos:
+      server-addr: 192.168.92.109:8848
+      username: nacos
+      password: 13134698852
+      config:
+        import-check:
+          enabled: false
 
   datasource:
-    url: jdbc:mysql://192.168.92.104:3306/project_management_system
+    url: jdbc:mysql://192.168.92.109:3306
     username: xun
-    password: 123456
+    password: 13134698852@Xun
     driver-class-name: com.mysql.cj.jdbc.Driver
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -28,7 +36,7 @@ spring:
 
   data:
     redis:
-      host: 192.168.92.104
+      host: 192.168.92.109
       port: 6379
       password: 123456
       lettuce:
@@ -63,6 +71,9 @@ logging:
   level:
     com.ai.orchestrator: DEBUG
     org.apache.felix: WARN
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: DEBUG
+    com.xun: DEBUG
 
 # 自定义配置
 ai:

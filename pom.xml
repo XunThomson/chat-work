@@ -16,6 +16,12 @@
         <module>docs</module>
         <module>netty-websocket</module>
         <module>common-utils</module>
+        <module>auth-service</module>
+        <module>data-center</module>
+        <module>metadata-service</module>
+        <module>log-audit-service</module>
+        <module>vector-sync-service</module>
+        <module>test</module>
     </modules>
 
     <properties>
@@ -43,6 +49,8 @@
 
         <es.version>7.17.29</es.version>
 
+        <nacos.version>3.0.3</nacos.version>
+
 
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -50,7 +58,27 @@
     </properties>
 
     <dependencyManagement>
+
+
         <dependencies>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+                <version>2023.0.0.0-RC1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                <version>2023.0.0.0-RC1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-client</artifactId>
+                <version>${nacos.version}</version>
+            </dependency>
+
             <!--            <dependency>-->
             <!--                <groupId>com.xun</groupId>-->
             <!--                <artifactId>CommonApi</artifactId>-->
@@ -101,6 +129,12 @@
                 <artifactId>mysql-connector-j</artifactId>
                 <version>${mysql.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.kafka</groupId>
+                <artifactId>spring-kafka</artifactId>
+                <version>3.2.0</version>
             </dependency>
 
             <dependency>

@@ -17,29 +17,14 @@ import java.util.Map;
  * @Description: TODO
  * @Version: 1.0
  */
-@Service
-public class FunctionExecutor {
-    @Autowired
-    private ModuleRegistry registry;
+public interface FunctionExecutor {
 
-    @Autowired
-    private SandboxExecutor sandboxExecutor;
-
-    public AiFunctionResult execute(String intentId, Map<String, Object> params, String userId) {
-        ModuleRegistry.RegisteredFunction func = registry.getFunction(intentId);
-        if (func == null) {
-            return AiFunctionResult.failure("NOT_FOUND", "功能未注册: " + intentId);
-        }
-
-        try {
-            // 沙箱执行
-            return (AiFunctionResult) sandboxExecutor.executeInSandbox(
-                    func.getInstance(),
-                    func.getMethod(),
-                    new Object[]{}
-            );
-        } catch (Exception e) {
-            return AiFunctionResult.failure("EXEC_ERROR", e.getMessage());
-        }
-    }
+    /**
+     * @description: 方法执行
+     * @author: xun
+     * @date: 2025/8/31 16:02
+     * @param: [intentId, args]
+     * @return: com.xun.sdk.model.AiFunctionResult
+     **/
+    public AiFunctionResult execute(String intentId,Object... args);
 }

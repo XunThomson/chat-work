@@ -1,7 +1,12 @@
 package com.xun.orchestrator.module;
 
+import com.xun.orchestrator.module.mi.LocalModuleInstance;
+import com.xun.orchestrator.module.mi.RemoteModuleInstance;
 import com.xun.sdk.annotation.AiFunction;
 import lombok.Getter;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -16,20 +21,30 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Version: 1.0
  */
 @Component
-public class ModuleRegistry {
+public class ModuleRegistry implements ApplicationContextAware {
+
+    private ApplicationContext applicationContext;
     private final Map<String, ModuleInstance> modules = new ConcurrentHashMap<>();
     private final Map<String, RegisteredFunction> functions = new ConcurrentHashMap<>();
-
-    public void registerModule(ModuleInstance instance) {
+    public void registerModule(LocalModuleInstance instance) {
         modules.put(instance.getModuleId(), instance);
     }
+
+    public void registerModule(RemoteModuleInstance instance) {
+        modules.put(instance.getModuleId(), instance);
+    }
+
 
     public void registerFunction(String intentId, RegisteredFunction func) {
         functions.put(intentId, func);
     }
 
-    public ModuleInstance getModule(String moduleId) {
-        return modules.get(moduleId);
+    public LocalModuleInstance getLocalModule(String moduleId) {
+        return (LocalModuleInstance) modules.get(moduleId);
+    }
+
+    public RemoteModuleInstance getRemoteModule(String moduleId) {
+        return (RemoteModuleInstance) modules.get(moduleId);
     }
 
     public RegisteredFunction getFunction(String intentId) {
@@ -42,6 +57,11 @@ public class ModuleRegistry {
 
     public void unloadModule(String moduleId){
         this.modules.remove(moduleId);
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 
     // 内部类：注册的功能元信息

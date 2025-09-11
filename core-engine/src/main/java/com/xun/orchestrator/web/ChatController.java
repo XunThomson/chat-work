@@ -9,6 +9,7 @@ import com.xun.orchestrator.session.UserSessionManager;
 import com.xun.sdk.model.AiFunctionResult;
 import com.xun.orchestrator.entity.RecognizedIntent;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,10 +25,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
-    @Autowired private IntentRecognizer recognizer;
-    @Autowired private FunctionExecutor executor;
-    @Autowired private UserSessionManager sessionManager;
-    @Autowired private UserFamiliarityService familiarityService;
+    @Autowired
+    private IntentRecognizer recognizer;
+    @Autowired
+    @Qualifier("local")
+    private FunctionExecutor executor;
+    @Autowired
+    private UserSessionManager sessionManager;
+    @Autowired
+    private UserFamiliarityService familiarityService;
 
     @PostMapping
     public String chat() {
@@ -41,7 +47,7 @@ public class ChatController {
             return "我还不太明白，您可以试试说：请三天假、我上班了";
         }
 
-        AiFunctionResult result = executor.execute(intent.getIntentId(), intent.getParameters(), userId);
+        AiFunctionResult result = executor.execute(intent.getIntentId());
         familiarityService.updateFamiliarity(session, intent.getIntentId());
 
         return "";
@@ -56,10 +62,22 @@ public class ChatController {
 
     static class ChatRequest {
         private String userId, message;
+
         // getters & setters
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+        public String getUserId() {
+            return userId;
+        }
+
+        public void setUserId(String userId) {
+            this.userId = userId;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.xun.orchestrator.module;
 
+import com.xun.orchestrator.module.mi.LocalModuleInstance;
 import com.xun.sdk.annotation.AiFunction;
 import com.xun.sdk.annotation.AiModule;
 import lombok.extern.slf4j.Slf4j;
@@ -119,7 +120,7 @@ public class ModuleLoader {
         }
 
         AiModule moduleAnno = entryClass.getAnnotation(AiModule.class);
-        ModuleInstance moduleInstance = new ModuleInstance(moduleAnno.id(), bundle, instance);
+        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
         registry.registerModule(moduleInstance);
 
         // 注册所有 @AiFunction（使用已扫描的类列表）
@@ -226,7 +227,7 @@ public class ModuleLoader {
     }
 
     public void unloadModule(String moduleId) {
-        ModuleInstance instance = registry.getModule(moduleId);
+        LocalModuleInstance instance = registry.getLocalModule(moduleId);
         if (instance != null) {
             try {
                 instance.getBundle().stop();
@@ -258,7 +259,7 @@ public class ModuleLoader {
         if (moduleAnno == null) return;
 
         Object instance = clazz.getDeclaredConstructor().newInstance();
-        ModuleInstance moduleInstance = new ModuleInstance(moduleAnno.id(), bundle, instance);
+        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
         registry.registerModule(moduleInstance);
 
         // 注册所有 @AiFunction 方法
@@ -391,7 +392,7 @@ public class ModuleLoader {
         AiModule moduleAnno = entryClass.getAnnotation(AiModule.class);
         Object instance = entryClass.getDeclaredConstructor().newInstance();
 
-        ModuleInstance moduleInstance = new ModuleInstance(moduleAnno.id(), bundle, instance);
+        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
         registry.registerModule(moduleInstance);
 
         // 扫描整个 Bundle 注册所有 @AiFunction（无论在哪）

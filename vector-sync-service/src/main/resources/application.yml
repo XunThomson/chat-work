@@ -1,0 +1,67 @@
+server:
+  port: 63376
+
+spring:
+  application:
+    name: vector-sync-service
+  cloud:
+    nacos:
+      server-addr: 192.168.92.109:8848
+      username: nacos
+      password: 13134698852
+      config:
+        import-check:
+          enabled: false
+
+  data:
+    redis:
+      host: 192.168.92.109
+      port: 6379
+      password: 123456
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+  kafka:
+    bootstrap-servers: 192.168.92.109:19094
+    properties:
+      # 安全协议
+      security.protocol: SASL_PLAINTEXT
+      sasl.mechanism: PLAIN
+      # 内联 JAAS 配置（重点！）
+      sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="123456";
+      spring.json.trusted.packages: "*"
+      spring.json.use.type.headers: false
+#      spring.json.value.default.type: java.util.Map
+
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#      acks: -1
+#      retries: 3
+#      retry-backoff: 100ms
+#      batch-size: 16384
+#      buffer-memory: 33554432
+#      compression-type: lz4
+
+    consumer:
+      group-id: ${KAFKA_GROUP_ID:ai-orchestrator-group}
+      enable-auto-commit: false
+      auto-commit-interval: 100ms
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.StringDeserializer
+      auto-offset-reset: earliest
+      heartbeat-interval: 3000
+      session-timeout: 10000
+
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+      concurrency: 3
+
+logging:
+  level:
+    com.ai.orchestrator: DEBUG
+    org.apache.felix: WARN
