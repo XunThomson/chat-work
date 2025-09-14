@@ -1,7 +1,7 @@
 package com.xun.orchestrator.intent;
 
 import com.xun.orchestrator.entity.MatchStrategy;
-import com.xun.orchestrator.module.ModuleRegistry;
+import com.xun.orchestrator.module.re.ModuleRegistry;
 import com.xun.orchestrator.session.UserSessionManager;
 import com.xun.orchestrator.entity.RecognizedIntent;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,23 +38,23 @@ public class IntentRecognizer {
         double bestConfidence = 0.0;
         RecognizedIntent bestIntent = RecognizedIntent.unknown(input);
 
-        for (var func : registry.getAllFunctions().values()) {
-            for (String utter : func.getAnnotation().utterances()) {
-                if (matchStrategy.matches(input, utter)) {
-                    double confidence = matchStrategy.confidence(input, utter);
-                    if (confidence > bestConfidence) {
-                        bestIntent = new RecognizedIntent.Builder()
-                                .intentId(func.getIntentId())
-                                .confidence(confidence)
-                                .parameters(extractParams(input, utter))
-                                .originalInput(input)
-                                .matchedUtterance(utter)
-                                .build();
-                        bestConfidence = confidence;
-                    }
-                }
-            }
-        }
+//        for (var func : registry.getAllFunctions().values()) {
+//            for (String utter : func.getAnnotation().utterances()) {
+//                if (matchStrategy.matches(input, utter)) {
+//                    double confidence = matchStrategy.confidence(input, utter);
+//                    if (confidence > bestConfidence) {
+//                        bestIntent = new RecognizedIntent.Builder()
+//                                .intentId(func.getIntentId())
+//                                .confidence(confidence)
+//                                .parameters(extractParams(input, utter))
+//                                .originalInput(input)
+//                                .matchedUtterance(utter)
+//                                .build();
+//                        bestConfidence = confidence;
+//                    }
+//                }
+//            }
+//        }
 
         return bestIntent;
     }

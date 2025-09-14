@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+//@Component
 public class StringWriter implements DataWriter {
 
     private final StringRedisTemplate stringRedisTemplate;

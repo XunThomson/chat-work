@@ -1,7 +1,5 @@
 package com.xun.orchestrator.function;
 
-import com.xun.orchestrator.module.ModuleRegistry;
-import com.xun.orchestrator.security.SandboxExecutor;
 import com.xun.sdk.model.AiFunctionResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

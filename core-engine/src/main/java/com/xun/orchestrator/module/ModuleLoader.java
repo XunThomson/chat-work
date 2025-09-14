@@ -1,6 +1,7 @@
 package com.xun.orchestrator.module;
 
 import com.xun.orchestrator.module.mi.LocalModuleInstance;
+import com.xun.orchestrator.module.re.FunctionRegistry;
 import com.xun.sdk.annotation.AiFunction;
 import com.xun.sdk.annotation.AiModule;
 import lombok.extern.slf4j.Slf4j;
@@ -11,18 +12,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.jar.JarFile;
-import java.util.jar.JarInputStream;
 import java.util.stream.Stream;
 
 /**
@@ -37,11 +34,13 @@ import java.util.stream.Stream;
 @Slf4j
 public class ModuleLoader {
     private BundleContext context;
-    private final ModuleRegistry registry;
+    private final com.xun.orchestrator.module.re.ModuleRegistry moduleRegistry;
+    private final FunctionRegistry functionRegistry;
 
     @Autowired
-    public ModuleLoader(ModuleRegistry registry) throws Exception {
-        this.registry = registry;
+    public ModuleLoader(com.xun.orchestrator.module.re.ModuleRegistry moduleRegistry, FunctionRegistry functionRegistry) throws Exception {
+        this.moduleRegistry = moduleRegistry;
+        this.functionRegistry = functionRegistry;
         initOSGi();
     }
 
@@ -113,29 +112,36 @@ public class ModuleLoader {
             throw new IllegalArgumentException("No @AiModule class found in " + jarFile.getName());
         }
 
-        Object instance = newInstance(entryClass);
-        if (instance == null) {
-            bundle.uninstall();
-            throw new IllegalArgumentException("Cannot instantiate @AiModule class: " + entryClass.getName());
-        }
+//        Object instance = newInstance(entryClass);
+//        if (instance == null) {
+//            bundle.uninstall();
+//            throw new IllegalArgumentException("Cannot instantiate @AiModule class: " + entryClass.getName());
+//        }
+
+//        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
+//        registry.registerModule(moduleInstance);
 
         AiModule moduleAnno = entryClass.getAnnotation(AiModule.class);
-        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
-        registry.registerModule(moduleInstance);
+        String moduleId = moduleAnno.id();
+
+        moduleRegistry.registerModule(moduleId, entryClass, bundle);
+        LocalModuleInstance moduleInstance = moduleRegistry.getLocalModule(moduleId);
+
 
         // 注册所有 @AiFunction（使用已扫描的类列表）
         for (Class<?> clazz : result.functionCandidateClasses) {
-            Object funcInstance = newInstance(clazz);
-            if (funcInstance == null) continue;
-
-            for (Method method : clazz.getDeclaredMethods()) {
-                AiFunction funcAnno = method.getAnnotation(AiFunction.class);
-                if (funcAnno != null && Modifier.isPublic(method.getModifiers())) {
-                    registry.registerFunction(funcAnno.intentId(), new ModuleRegistry.RegisteredFunction(
-                            moduleAnno.id(), funcAnno, method, funcInstance
-                    ));
-                }
-            }
+            functionRegistry.registerFunction(clazz, moduleId);
+//            Object funcInstance = newInstance(clazz);
+//            if (funcInstance == null) continue;
+//
+//            for (Method method : clazz.getDeclaredMethods()) {
+//                AiFunction funcAnno = method.getAnnotation(AiFunction.class);
+//                if (funcAnno != null && Modifier.isPublic(method.getModifiers())) {
+//                    registry.registerFunction(funcAnno.intentId(), new ModuleRegistry.RegisteredFunction(
+//                            moduleAnno.id(), funcAnno, method, funcInstance
+//                    ));
+//                }
+//            }
         }
     }
 
@@ -148,6 +154,7 @@ public class ModuleLoader {
                         bundle.findEntries(".", "*.class", true) // 最后兜底 "."
                 );
     }
+
     private Enumeration<URL> findClassEntries1(Bundle bundle) {
         Enumeration<URL> entries = bundle.findEntries(null, "*.class", true);
         if (entries != null && entries.hasMoreElements()) {
@@ -227,228 +234,229 @@ public class ModuleLoader {
     }
 
     public void unloadModule(String moduleId) {
-        LocalModuleInstance instance = registry.getLocalModule(moduleId);
+        functionRegistry.unloadModuleFunctions(moduleId);
+        LocalModuleInstance instance = moduleRegistry.getLocalModule(moduleId);
         if (instance != null) {
             try {
                 instance.getBundle().stop();
                 instance.getBundle().uninstall();
-                registry.unloadModule(moduleId);
+                moduleRegistry.unloadModule(moduleId);
             } catch (Exception e) {
                 log.error("Failed to unload module: {}", moduleId, e);
             }
         }
     }
 
-    public void loadModule1(File jarFile) throws Exception {
-        Bundle bundle = context.installBundle(jarFile.toURI().toString());
-        bundle.start();
+//    public void loadModule1(File jarFile) throws Exception {
+//        Bundle bundle = context.installBundle(jarFile.toURI().toString());
+//        bundle.start();
+//
+//        // 扫描主类
+//        JarInputStream jis = new JarInputStream(jarFile.toURL().openStream());
+//        String mainClass = null;
+//        java.util.jar.Manifest manifest = jis.getManifest();
+//        if (manifest != null) {
+//            mainClass = manifest.getMainAttributes().getValue("Main-Class");
+//        }
+//        jis.close();
+//
+//        if (mainClass == null) throw new IllegalArgumentException("No Main-Class in JAR");
+//
+//        Class<?> clazz = bundle.loadClass(mainClass);
+//        AiModule moduleAnno = clazz.getAnnotation(AiModule.class);
+//        if (moduleAnno == null) return;
+//
+//        Object instance = clazz.getDeclaredConstructor().newInstance();
+//        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
+//        registry.registerModule(moduleInstance);
+//
+//        // 注册所有 @AiFunction 方法
+//        for (Method method : clazz.getDeclaredMethods()) {
+//            AiFunction funcAnno = method.getAnnotation(AiFunction.class);
+//            if (funcAnno != null) {
+//                registry.registerFunction(funcAnno.intentId(),
+//                        new ModuleRegistry.RegisteredFunction(moduleAnno.id(), funcAnno, method, instance));
+//            }
+//        }
+//    }
+//
+//    public void loadModule2(File jarFile) throws Exception {
+//        Bundle bundle = context.installBundle(jarFile.toURI().toString());
+//        bundle.start();
+//
+//        // 等待 Bundle 激活
+//        long start = System.currentTimeMillis();
+//        while (bundle.getState() != Bundle.ACTIVE && bundle.getState() != Bundle.RESOLVED) {
+//            Thread.sleep(10);
+//            if (System.currentTimeMillis() - start > 5000) {
+//                throw new TimeoutException("Bundle failed to start: " + bundle.getLocation());
+//            }
+//        }
+//
+//        String mainClass = getMainClassFromManifest(jarFile);
+//        Class<?> candidateClass = null;
+//
+//        if (null != mainClass) {
+//            try {
+//                candidateClass = bundle.loadClass(mainClass);
+//                if (hasAiModuleAnnotation(candidateClass)) {
+//                    log.info("Using Main-Class as module entry: " + mainClass);
+//                    loadModuleFromEntryClass(bundle, candidateClass);
+//                    return;
+//                }
+//            } catch (Exception e) {
+//                log.error("Failed to load Main-Class: " + mainClass);
+//                log.error(e.getMessage());
+//                throw new RuntimeException(e);
+//            }
+//        }
+//
+//        Class<?> moduleClass = findFirstAiModuleClass(bundle);
+//        if (moduleClass != null) {
+//            log.info("Found @AiModule class: " + moduleClass.getName());
+//            loadModuleFromEntryClass(bundle, moduleClass);
+//            return;
+//        }
+//
+//        bundle.uninstall(); // 清理已安装的无效 bundle
+//        throw new IllegalArgumentException("No valid @AiModule class found in " + jarFile.getName());
+//    }
 
-        // 扫描主类
-        JarInputStream jis = new JarInputStream(jarFile.toURL().openStream());
-        String mainClass = null;
-        java.util.jar.Manifest manifest = jis.getManifest();
-        if (manifest != null) {
-            mainClass = manifest.getMainAttributes().getValue("Main-Class");
-        }
-        jis.close();
-
-        if (mainClass == null) throw new IllegalArgumentException("No Main-Class in JAR");
-
-        Class<?> clazz = bundle.loadClass(mainClass);
-        AiModule moduleAnno = clazz.getAnnotation(AiModule.class);
-        if (moduleAnno == null) return;
-
-        Object instance = clazz.getDeclaredConstructor().newInstance();
-        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
-        registry.registerModule(moduleInstance);
-
-        // 注册所有 @AiFunction 方法
-        for (Method method : clazz.getDeclaredMethods()) {
-            AiFunction funcAnno = method.getAnnotation(AiFunction.class);
-            if (funcAnno != null) {
-                registry.registerFunction(funcAnno.intentId(),
-                        new ModuleRegistry.RegisteredFunction(moduleAnno.id(), funcAnno, method, instance));
-            }
-        }
-    }
-
-    public void loadModule2(File jarFile) throws Exception {
-        Bundle bundle = context.installBundle(jarFile.toURI().toString());
-        bundle.start();
-
-        // 等待 Bundle 激活
-        long start = System.currentTimeMillis();
-        while (bundle.getState() != Bundle.ACTIVE && bundle.getState() != Bundle.RESOLVED) {
-            Thread.sleep(10);
-            if (System.currentTimeMillis() - start > 5000) {
-                throw new TimeoutException("Bundle failed to start: " + bundle.getLocation());
-            }
-        }
-
-        String mainClass = getMainClassFromManifest(jarFile);
-        Class<?> candidateClass = null;
-
-        if (null != mainClass) {
-            try {
-                candidateClass = bundle.loadClass(mainClass);
-                if (hasAiModuleAnnotation(candidateClass)) {
-                    log.info("Using Main-Class as module entry: " + mainClass);
-                    loadModuleFromEntryClass(bundle, candidateClass);
-                    return;
-                }
-            } catch (Exception e) {
-                log.error("Failed to load Main-Class: " + mainClass);
-                log.error(e.getMessage());
-                throw new RuntimeException(e);
-            }
-        }
-
-        Class<?> moduleClass = findFirstAiModuleClass(bundle);
-        if (moduleClass != null) {
-            log.info("Found @AiModule class: " + moduleClass.getName());
-            loadModuleFromEntryClass(bundle, moduleClass);
-            return;
-        }
-
-        bundle.uninstall(); // 清理已安装的无效 bundle
-        throw new IllegalArgumentException("No valid @AiModule class found in " + jarFile.getName());
-    }
-
-    private String getMainClassFromManifest(File jarFile) throws IOException {
-        try (JarFile jar = new JarFile(jarFile)) {
-            java.util.jar.Manifest manifest = jar.getManifest();
-            return manifest != null ? manifest.getMainAttributes().getValue("Main-Class") : null;
-        }
-    }
-
-    private Class<?> findFirstAiModuleClass(Bundle bundle) {
-        // 确保 Bundle 已解析
-        if (bundle.getState() < Bundle.RESOLVED) {
-            System.err.println("Bundle not resolved: " + bundle.getSymbolicName());
-            return null;
-        }
-
-        // 尝试两种路径模式，提高兼容性
-        Enumeration<URL> entries = bundle.findEntries(null, "*.class", true);
-        if (entries == null || !entries.hasMoreElements()) {
-            entries = bundle.findEntries(".", "*.class", true);
-        }
-        if (entries == null) return null;
-
-        while (entries.hasMoreElements()) {
-            URL entry = entries.nextElement();
-            String path = entry.getPath();
-            String className = toClassName(path);
-            if (className == null) continue;
-
-            try {
-                Class<?> clazz = bundle.loadClass(className);
-                if (hasAiModuleAnnotation(clazz)) {
-                    return clazz;
-                }
-            } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                // 忽略：类找不到或依赖缺失
-            } catch (Throwable t) {
-                System.err.println("Error loading class " + className + " from " + bundle.getSymbolicName() + ": " + t.getMessage());
-            }
-        }
-        return null;
-    }
-
-    private void registerAiFunction(Method method, AiFunction funcAnno, Class<?> clazz, String moduleId) {
-        try {
-            // 确保方法是 public
-            if (!Modifier.isPublic(method.getModifiers())) {
-                System.err.println("Skipped @AiFunction: " + method + " - must be public");
-                return;
-            }
-
-            // 实例化该类（要求有无参构造函数）
-            Object instance = clazz.getDeclaredConstructor().newInstance();
-
-            // 构建注册函数对象
-            ModuleRegistry.RegisteredFunction registeredFunction = new ModuleRegistry.RegisteredFunction(
-                    moduleId,
-                    funcAnno,
-                    method,
-                    instance
-            );
-
-            // 注册到全局 registry
-            registry.registerFunction(funcAnno.intentId(), registeredFunction);
-
-            System.out.println("Registered @AiFunction: " + funcAnno.intentId() + " -> " + method);
-
-        } catch (NoSuchMethodException e) {
-            System.err.println("No no-arg constructor for class: " + clazz.getName());
-        } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
-            System.err.println("Cannot instantiate class for @AiFunction: " + clazz.getName() + " - " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("Failed to register @AiFunction: " + funcAnno.intentId() + " - " + e.getMessage());
-        }
-    }
-
-    private void loadModuleFromEntryClass(Bundle bundle, Class<?> entryClass) throws Exception {
-        AiModule moduleAnno = entryClass.getAnnotation(AiModule.class);
-        Object instance = entryClass.getDeclaredConstructor().newInstance();
-
-        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
-        registry.registerModule(moduleInstance);
-
-        // 扫描整个 Bundle 注册所有 @AiFunction（无论在哪）
-        registerAllAiFunctions(bundle, moduleAnno.id());
-    }
-
-    private void registerAllAiFunctions(Bundle bundle, String moduleId) {
-        if (bundle.getState() < Bundle.RESOLVED) {
-            log.warn("Bundle not resolved: {}", bundle.getSymbolicName());
-            return;
-        }
-
-        Set<String> processedClasses = new HashSet<>(); // 避免重复处理
-
-        Enumeration<URL> entries = bundle.findEntries("/", "*.class", true);
-        if (entries == null || !entries.hasMoreElements()) {
-            entries = bundle.findEntries(".", "*.class", true);
-        }
-        if (entries == null) return;
-
-        while (entries.hasMoreElements()) {
-            URL entry = entries.nextElement();
-            String className = toClassName(entry.getPath());
-            if (className == null || processedClasses.contains(className)) continue;
-
-            processedClasses.add(className);
-
-            try {
-                Class<?> clazz = bundle.loadClass(className);
-                Object instance = createInstance(clazz); // 提取为方法
-                if (instance == null) continue;
-
-                for (Method method : clazz.getDeclaredMethods()) {
-                    AiFunction funcAnno = method.getAnnotation(AiFunction.class);
-                    if (funcAnno != null && Modifier.isPublic(method.getModifiers())) {
-                        registry.registerFunction(funcAnno.intentId(), new ModuleRegistry.RegisteredFunction(
-                                moduleId, funcAnno, method, instance
-                        ));
-                        log.debug("Registered @AiFunction: {} -> {}.{}", funcAnno.intentId(), className, method.getName());
-                    }
-                }
-            } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                log.debug("Class not found during scan: {}", className);
-            } catch (Throwable t) {
-                log.warn("Error scanning class: {}", className, t);
-            }
-        }
-    }
-
-    private Object createInstance(Class<?> clazz) {
-        try {
-            return clazz.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
-                 InvocationTargetException e) {
-            log.warn("Cannot instantiate class: {} - {}", clazz.getName(), e.getMessage());
-            return null;
-        }
-    }
+//    private String getMainClassFromManifest(File jarFile) throws IOException {
+//        try (JarFile jar = new JarFile(jarFile)) {
+//            java.util.jar.Manifest manifest = jar.getManifest();
+//            return manifest != null ? manifest.getMainAttributes().getValue("Main-Class") : null;
+//        }
+//    }
+//
+//    private Class<?> findFirstAiModuleClass(Bundle bundle) {
+//        // 确保 Bundle 已解析
+//        if (bundle.getState() < Bundle.RESOLVED) {
+//            System.err.println("Bundle not resolved: " + bundle.getSymbolicName());
+//            return null;
+//        }
+//
+//        // 尝试两种路径模式，提高兼容性
+//        Enumeration<URL> entries = bundle.findEntries(null, "*.class", true);
+//        if (entries == null || !entries.hasMoreElements()) {
+//            entries = bundle.findEntries(".", "*.class", true);
+//        }
+//        if (entries == null) return null;
+//
+//        while (entries.hasMoreElements()) {
+//            URL entry = entries.nextElement();
+//            String path = entry.getPath();
+//            String className = toClassName(path);
+//            if (className == null) continue;
+//
+//            try {
+//                Class<?> clazz = bundle.loadClass(className);
+//                if (hasAiModuleAnnotation(clazz)) {
+//                    return clazz;
+//                }
+//            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+//                // 忽略：类找不到或依赖缺失
+//            } catch (Throwable t) {
+//                System.err.println("Error loading class " + className + " from " + bundle.getSymbolicName() + ": " + t.getMessage());
+//            }
+//        }
+//        return null;
+//    }
+//
+//    private void registerAiFunction(Method method, AiFunction funcAnno, Class<?> clazz, String moduleId) {
+//        try {
+//            // 确保方法是 public
+//            if (!Modifier.isPublic(method.getModifiers())) {
+//                System.err.println("Skipped @AiFunction: " + method + " - must be public");
+//                return;
+//            }
+//
+//            // 实例化该类（要求有无参构造函数）
+//            Object instance = clazz.getDeclaredConstructor().newInstance();
+//
+//            // 构建注册函数对象
+//            ModuleRegistry.RegisteredFunction registeredFunction = new ModuleRegistry.RegisteredFunction(
+//                    moduleId,
+//                    funcAnno,
+//                    method,
+//                    instance
+//            );
+//
+//            // 注册到全局 registry
+//            registry.registerFunction(funcAnno.intentId(), registeredFunction);
+//
+//            System.out.println("Registered @AiFunction: " + funcAnno.intentId() + " -> " + method);
+//
+//        } catch (NoSuchMethodException e) {
+//            System.err.println("No no-arg constructor for class: " + clazz.getName());
+//        } catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
+//            System.err.println("Cannot instantiate class for @AiFunction: " + clazz.getName() + " - " + e.getMessage());
+//        } catch (Exception e) {
+//            System.err.println("Failed to register @AiFunction: " + funcAnno.intentId() + " - " + e.getMessage());
+//        }
+//    }
+//
+//    private void loadModuleFromEntryClass(Bundle bundle, Class<?> entryClass) throws Exception {
+//        AiModule moduleAnno = entryClass.getAnnotation(AiModule.class);
+//        Object instance = entryClass.getDeclaredConstructor().newInstance();
+//
+//        LocalModuleInstance moduleInstance = new LocalModuleInstance(moduleAnno.id(), bundle, instance);
+//        registry.registerModule(moduleInstance);
+//
+//        // 扫描整个 Bundle 注册所有 @AiFunction（无论在哪）
+//        registerAllAiFunctions(bundle, moduleAnno.id());
+//    }
+//
+//    private void registerAllAiFunctions(Bundle bundle, String moduleId) {
+//        if (bundle.getState() < Bundle.RESOLVED) {
+//            log.warn("Bundle not resolved: {}", bundle.getSymbolicName());
+//            return;
+//        }
+//
+//        Set<String> processedClasses = new HashSet<>(); // 避免重复处理
+//
+//        Enumeration<URL> entries = bundle.findEntries("/", "*.class", true);
+//        if (entries == null || !entries.hasMoreElements()) {
+//            entries = bundle.findEntries(".", "*.class", true);
+//        }
+//        if (entries == null) return;
+//
+//        while (entries.hasMoreElements()) {
+//            URL entry = entries.nextElement();
+//            String className = toClassName(entry.getPath());
+//            if (className == null || processedClasses.contains(className)) continue;
+//
+//            processedClasses.add(className);
+//
+//            try {
+//                Class<?> clazz = bundle.loadClass(className);
+//                Object instance = createInstance(clazz); // 提取为方法
+//                if (instance == null) continue;
+//
+//                for (Method method : clazz.getDeclaredMethods()) {
+//                    AiFunction funcAnno = method.getAnnotation(AiFunction.class);
+//                    if (funcAnno != null && Modifier.isPublic(method.getModifiers())) {
+//                        registry.registerFunction(funcAnno.intentId(), new ModuleRegistry.RegisteredFunction(
+//                                moduleId, funcAnno, method, instance
+//                        ));
+//                        log.debug("Registered @AiFunction: {} -> {}.{}", funcAnno.intentId(), className, method.getName());
+//                    }
+//                }
+//            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+//                log.debug("Class not found during scan: {}", className);
+//            } catch (Throwable t) {
+//                log.warn("Error scanning class: {}", className, t);
+//            }
+//        }
+//    }
+//
+//    private Object createInstance(Class<?> clazz) {
+//        try {
+//            return clazz.getDeclaredConstructor().newInstance();
+//        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
+//                 InvocationTargetException e) {
+//            log.warn("Cannot instantiate class: {} - {}", clazz.getName(), e.getMessage());
+//            return null;
+//        }
+//    }
 }

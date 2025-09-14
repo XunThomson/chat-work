@@ -14,8 +14,8 @@ import org.osgi.framework.Bundle;
  */
 @Getter
 public abstract class ModuleInstance {
-    private final String moduleId;
 
+    private final String moduleId;
     private final long loadTime;
 
     public ModuleInstance(String moduleId) {

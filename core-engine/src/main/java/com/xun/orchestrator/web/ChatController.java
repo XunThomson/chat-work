@@ -43,11 +43,11 @@ public class ChatController {
         ChatSession session = sessionManager.getOrCreate(userId);
         RecognizedIntent intent = recognizer.recognize(input, userId);
 
-        if (!intent.isConfident(0.3)) { // 使用置信度阈值
-            return "我还不太明白，您可以试试说：请三天假、我上班了";
-        }
+//        if (!intent.isConfident(0.3)) { // 使用置信度阈值
+//            return "我还不太明白，您可以试试说：请三天假、我上班了";
+//        }
 
-        AiFunctionResult result = executor.execute(intent.getIntentId());
+        AiFunctionResult result = executor.execute("hello-module");
         familiarityService.updateFamiliarity(session, intent.getIntentId());
 
         return "";

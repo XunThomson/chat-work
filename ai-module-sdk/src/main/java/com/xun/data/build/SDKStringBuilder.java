@@ -7,22 +7,16 @@ import com.xun.data.way.CRBuild;
 import com.xun.data.way.WKeyString;
 import com.xun.data.way.WMap;
 import com.xun.data.way.WValString;
-import jakarta.annotation.Resource;
-import org.redisson.api.map.MapWriter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.Objects;
 
-@Component
 public class SDKStringBuilder {
 
+    private final StringRedisTemplate stringRedisTemplate;
 
-    private StringRedisTemplate stringRedisTemplate;
-
-    private KafkaTemplate<String, Object> kafkaTemplate; // 用于发送事件
+    private final KafkaTemplate<String, Object> kafkaTemplate; // 用于发送事件
 
     private SDKStringBuilder(StringRedisTemplate stringRedisTemplate,
                              KafkaTemplate<String, Object> kafkaTemplate) {
@@ -37,10 +31,26 @@ public class SDKStringBuilder {
 
 
     public StrBuilder builder() {
-        return new StrBuilder(stringRedisTemplate, kafkaTemplate);
+        System.out.println("✅ builder() 方法被调用！");
+
+        StrBuilder instance = new StrBuilder(stringRedisTemplate, kafkaTemplate);
+        System.out.println("🏗️ 实例创建完成: " + instance);
+        System.out.println("📤 准备返回实例...");
+
+        // 👇 加这一行！如果这行能打印，说明类加载成功！
+        System.out.println("🧪 接口类存在: " + WKeyString.class);
+
+        return instance; // 👈 如果这行之后没日志，说明 return 时类加载失败！
     }
 
     public static class StrBuilder implements WKeyString, WValString, WMap {
+
+        static {
+            System.out.println("🧪 StrBuilder 静态初始化开始...");
+            // 如果这里有依赖外部类的代码，可能在这里崩溃！
+            System.out.println("🧪 StrBuilder 静态初始化完成！");
+        }
+
 
         private final StringRedisTemplate stringRedisTemplate;
         private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -49,18 +59,22 @@ public class SDKStringBuilder {
         private Map<String, Object> map;
 
         public StrBuilder(StringRedisTemplate stringRedisTemplate, KafkaTemplate<String, Object> kafkaTemplate) {
+            System.out.println("🏗️ StrBuilder 构造函数开始...");
             this.stringRedisTemplate = stringRedisTemplate;
             this.kafkaTemplate = kafkaTemplate;
+            System.out.println("✅ StrBuilder 构造完成！");
         }
 
         @Override
         public WValString key(String key) {
+            System.out.println(key);
             this.key = key;
             return this;
         }
 
         @Override
         public CRBuild value(String value) {
+            System.out.println(value);
             StringWriter stringWriter = new StringWriter(stringRedisTemplate, kafkaTemplate, this.key, value);
             return new BuildResult(stringWriter);
         }

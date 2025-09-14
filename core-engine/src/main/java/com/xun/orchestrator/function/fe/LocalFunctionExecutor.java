@@ -1,8 +1,10 @@
 package com.xun.orchestrator.function.fe;
 
 import com.xun.orchestrator.function.FunctionExecutor;
-import com.xun.orchestrator.module.ModuleRegistry;
 import com.xun.orchestrator.module.mi.LocalModuleInstance;
+import com.xun.orchestrator.module.re.FunctionRegistry;
+import com.xun.orchestrator.module.re.ModuleRegistry;
+import com.xun.orchestrator.module.re.RegisteredFunction;
 import com.xun.orchestrator.security.SandboxExecutor;
 import com.xun.sdk.model.AiFunctionResult;
 import jakarta.annotation.Resource;
@@ -25,12 +27,19 @@ public class LocalFunctionExecutor implements FunctionExecutor {
     private ModuleRegistry registry;
 
     @Resource
+    private com.xun.orchestrator.module.re.ModuleRegistry moduleRegistry;
+    @Resource
+    private FunctionRegistry functionRegistry;
+
+    @Resource
     private SandboxExecutor executor;
 
     @Override
-    public AiFunctionResult execute(String intentId,Object... args) {
+    public AiFunctionResult execute(String intentId, Object... args) {
+        LocalModuleInstance instance = moduleRegistry.getLocalModule(intentId);
+        RegisteredFunction func = functionRegistry.getFunction("hello", instance.getModuleId(), instance.getBundle());
 
-        ModuleRegistry.RegisteredFunction func = registry.getFunction(intentId);
+//        ModuleRegistry.RegisteredFunction func = registry.getFunction(intentId);
         if (func == null) {
             return AiFunctionResult.failure("NOT_FOUND", "功能未注册: " + intentId);
         }

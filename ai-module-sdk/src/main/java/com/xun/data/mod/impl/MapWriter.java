@@ -4,8 +4,10 @@ import com.xun.data.mod.DataWriter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 
+
 import java.util.Map;
 
+//@Component
 public class MapWriter implements DataWriter {
     private final StringRedisTemplate stringRedisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;

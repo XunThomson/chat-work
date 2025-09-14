@@ -7,6 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import java.util.Map;
 import java.util.Objects;
 
+//@Component
 public class StrMapWriter implements DataWriter {
 
     private final StringRedisTemplate stringRedisTemplate;
